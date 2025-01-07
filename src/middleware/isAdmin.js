@@ -1,0 +1,28 @@
+
+import jwt from "jsonwebtoken"
+import { User } from "../models/user.model.js";
+import { asyncHandler } from "../utils/asyncHandler.js";
+import { ApiError } from "../utils/apiError.js";
+
+
+
+export const isAdmin= asyncHandler(async (req,res,next)=>{
+  try {
+     const token = req.cookies?.accessToken || req.header("Authorization")?.replace("Bearer ", "")
+     if (!token) {
+      throw new ApiError(401,"Unautorized access")
+
+      
+     }
+     const decodedToken = jwt.verify(token, process.env.ACCESS_TOKEN_SECRET);
+     const user = await User.findById(decodedToken?._id).select("-password -refreshToken")
+     if (!user || user.role!="admin") {
+      throw new ApiError(401,"", "Invalid access")
+     }
+     user.role="admin";
+     next()
+  } catch (error) {
+    throw new ApiError(401,error?.message || "Only admin is authrized")
+    
+  }
+}) 
